@@ -1,0 +1,17 @@
+{
+  "name": "SiurotPlan – Programación Docente",
+  "short_name": "SiurotPlan",
+  "description": "Tu cuaderno de planificación docente digital",
+  "start_url": "/SiurotPlan/",
+  "scope": "/SiurotPlan/",
+  "display": "standalone",
+  "background_color": "#0f1c2e",
+  "theme_color": "#0f1c2e",
+    "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/ManuelVS8/SiurotPlan/refs/heads/main/SiurotPlanLogo.ico",
+      "sizes": "512x512",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    }
+  ]
