@@ -60,6 +60,9 @@ label{font-weight:600;font-size:.8rem;color:var(--ink2);display:block;margin-bot
     <button class="hdr-btn" onclick="goToday()">📅 Hoy</button>
     <button class="hdr-btn" onclick="switchTab('horario')">🕐 Horario</button>
     <button class="hdr-btn" onclick="openSettings()">⚙️</button>
+    <button id="btnInstalar" class="hdr-btn" style="display: none; background: var(--accent); border-color: var(--accent);">
+  📥 Instalar App
+</button>
   </div>
 </header>
 <div class="settings-scrim" id="stg-scrim" onclick="closeSettings()"></div>
@@ -311,6 +314,46 @@ function openRangePDFPicker(){rpState.start=null;rpState.end=null;rpState.month=
 function buildRPickerHTML(){const hoy=new Date();const pm=new Date(rpState.year,rpState.month,1);const dm=new Date(rpState.year,rpState.month+1,0).getDate();let di=pm.getDay();if(di===0)di=7;di--;const prev=new Date(rpState.year,rpState.month,0).getDate();let cells='';for(let i=di-1;i>=0;i--)cells+=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:.78rem;color:var(--paper3)">${prev-i}</div>`;for(let d=1;d<=dm;d++){const dt=new Date(rpState.year,rpState.month,d);const dk=fmtDate(dt);const dow=dt.getDay();const isWknd=dow===0||dow===6;const isToday=dk===fmtDate(hoy);const isStart=rpState.start&&dk===rpState.start;const isEnd=rpState.end&&dk===rpState.end;const inRange=rpState.start&&rpState.end&&dk>rpState.start&&dk<rpState.end;let bg='transparent',color=isWknd?'var(--ink3)':'var(--ink)',outline='';if(isStart||isEnd){bg='var(--accent)';color='#fff';}else if(inRange){bg='rgba(232,82,10,.12)';color='var(--accent)';}if(isToday)outline='outline:2px solid var(--blue2);outline-offset:-2px;';cells+=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:600;background:${bg};color:${color};border-radius:7px;cursor:pointer;${outline}" onclick="rpClick('${dk}')">${d}</div>`;}const tot=di+dm;const sig=tot%7===0?0:7-(tot%7);for(let i=1;i<=sig;i++)cells+=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:.78rem;color:var(--paper3)">${i}</div>`;return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><button class="btn btn-ghost btn-sm" onclick="rpState.month--;if(rpState.month<0){rpState.month=11;rpState.year--;}document.getElementById('rpicker-wrap').innerHTML=buildRPickerHTML()">‹</button><span style="font-weight:700;font-size:.9rem">${MESES[rpState.month]} ${rpState.year}</span><button class="btn btn-ghost btn-sm" onclick="rpState.month++;if(rpState.month>11){rpState.month=0;rpState.year++;}document.getElementById('rpicker-wrap').innerHTML=buildRPickerHTML()">›</button></div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">${DIAS_C.map(d=>`<div style="text-align:center;font-size:.62rem;font-weight:800;color:var(--ink3);text-transform:uppercase;padding:3px 0">${d}</div>`).join('')}${cells}</div>`;}
 function rpClick(dk){if(!rpState.start||(rpState.start&&rpState.end)){rpState.start=dk;rpState.end=null;}else{if(dk<rpState.start){rpState.end=rpState.start;rpState.start=dk;}else{rpState.end=dk;}}const wrap=document.getElementById('rpicker-wrap');if(wrap)wrap.innerHTML=buildRPickerHTML();const disp=document.getElementById('rp-display');const genBtn=document.getElementById('rp-gen-btn');if(disp){if(rpState.start&&!rpState.end){const ds=new Date(rpState.start+'T12:00:00');disp.innerHTML=`<strong>Inicio:</strong> ${ds.toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'long'})} → <span style="color:var(--ink3)">selecciona el día final</span>`;}else if(rpState.start&&rpState.end){const ds=new Date(rpState.start+'T12:00:00');const de=new Date(rpState.end+'T12:00:00');let cnt=0;let tmp=new Date(rpState.start+'T12:00:00');while(fmtDate(tmp)<=rpState.end){if(tmp.getDay()!==0&&tmp.getDay()!==6)cnt++;tmp.setDate(tmp.getDate()+1);}disp.innerHTML=`<strong style="color:var(--accent)">${ds.toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</strong> → <strong style="color:var(--accent)">${de.toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'})}</strong> <span style="color:var(--ink3);font-size:.78rem">(${cnt} días lectivos)</span>`;if(genBtn)genBtn.style.display='inline-flex';}}}
 async function generateRangePDF(){if(!rpState.start||!rpState.end){toast('Selecciona inicio y fin');return;}closeModal();showPdfLoading();setTimeout(async()=>{try{const{jsPDF}=window.jspdf;const doc=new jsPDF('p','mm','a4');const margin=14;let y=await drawPdfHeader(doc);const ds=new Date(rpState.start+'T12:00:00');const de=new Date(rpState.end+'T12:00:00');const rangeStr=ds.toLocaleDateString('es-ES',{day:'numeric',month:'long'})+' – '+de.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(232,82,10);doc.text('Programacion del '+rangeStr,margin,y);y+=8;let cur=new Date(rpState.start+'T12:00:00');while(fmtDate(cur)<=rpState.end){const dkKey=diaKey(cur);if(dkKey){const dk=fmtDate(cur);y=addDaySection(doc,dk,y);}cur.setDate(cur.getDate()+1);}doc.setFontSize(7);doc.setTextColor(180);doc.text('Generado con SiurotPlan · '+new Date().toLocaleDateString('es-ES'),margin,285);doc.save(`SiurotPlan_${rpState.start}_${rpState.end}.pdf`);hidePdfLoading();toast('PDF descargado');}catch(e){hidePdfLoading();toast('Error generando PDF');console.error(e);}},100);}
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js')
+      .then(reg=>console.log('SW ok',reg))
+      .catch(err=>console.error('SW err',err));
+  });
+}
+
+// === CÓDIGO NUEVO PARA EL BOTÓN DE INSTALACIÓN ===
+let eventoInstalacion;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  eventoInstalacion = e;
+  const botonInstalar = document.getElementById('btnInstalar');
+  if (botonInstalar) {
+    botonInstalar.style.display = 'inline-flex';
+  }
+});
+
+document.getElementById('btnInstalar')?.addEventListener('click', async () => {
+  if (!eventoInstalacion) return;
+  
+  eventoInstalacion.prompt();
+  
+  const { outcome } = await eventoInstalacion.userChoice;
+  console.log(`El usuario eligió: ${outcome}`);
+  
+  if (outcome === 'accepted') {
+    document.getElementById('btnInstalar').style.display = 'none';
+    eventoInstalacion = null;
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('btnInstalar').style.display = 'none';
+  eventoInstalacion = null;
+  console.log('¡SiurotPlan instalada con éxito!');
+});
+// ================================================
 </script>
 </body>
 </html>
