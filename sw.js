@@ -1,7 +1,7 @@
 const CACHE_NAME = 'siurotplan-v1';
 const urlsToCache = [
-  '/SiurotPlan/',
-  '/SiurotPlan/index.html'
+  './',
+  './index.html'
 ];
 
 self.addEventListener('install', e => {
